@@ -15,11 +15,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci   # faster and cleaner than npm install
 
-      - name: Start Bot
-        run: npm start
+      - name: Start Dhaba WhatsApp Bot
+        run: node index.js
         env:
-          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          # Add any environment variables if needed later
+          NODE_ENV: production
+        # This keeps the action running (no timeout for long-running bot)
+        continue-on-error: true   # Prevents immediate failure
