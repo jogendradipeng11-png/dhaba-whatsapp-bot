@@ -3,7 +3,7 @@ const qrcode = require('qrcode-terminal');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Firebase (keep as you have)
+// Firebase
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -11,53 +11,53 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const client = new Client({
-  authStrategy: new LocalAuth({ clientId: "dhaba-bot" }),   // Helps with session
+  authStrategy: new LocalAuth({ clientId: "dhaba-bot" }),
   puppeteer: {
     headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-gpu',
-      '--disable-extensions'
-    ],
-    executablePath: '/usr/bin/google-chrome-stable'   // GitHub runner has Chrome
-  },
-  // Fix for recent WhatsApp Web changes
-  webVersionCache: {
-    type: 'remote',
-    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.0.html'   // Update if needed
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   }
 });
 
 client.on('qr', (qr) => {
-  console.log('\n🔥 SCAN THIS QR CODE WITH YOUR WHATSAPP APP:\n');
-  qrcode.generate(qr, { 
-    small: false,     // Bigger QR = easier to scan
-    scale: 8 
-  });
-  console.log('\nIf the QR is still hard to scan, copy the text below and use an online QR generator:\n');
-  console.log(qr);   // This prints the raw QR string
+  console.log('\n🔥 === SCAN THIS QR CODE WITH WHATSAPP ===\n');
+  qrcode.generate(qr, { small: false });   // Bigger QR for mobile scan
+  console.log('\nRaw QR string (if needed):');
+  console.log(qr);
 });
 
 client.on('ready', () => {
-  console.log('✅ Dhaba WhatsApp Bot is successfully connected and online!');
+  console.log('\n✅ Dhaba WhatsApp Bot is ONLINE and Ready!');
+  console.log('Bot is now listening for messages...');
 });
 
 client.on('authenticated', () => {
   console.log('🔐 Session authenticated successfully!');
 });
 
-// Your message handler (keep your existing hi/menu/order logic here)
 client.on('message', async (msg) => {
   const text = msg.body.toLowerCase().trim();
-  // ... your existing code for hi, menu, order ...
+
+  if (text === 'hi' || text === 'hello' || text === 'namaste') {
+    msg.reply(`👋 Welcome to *Dhaba Bot*!\n\nType *menu* to see today's menu 🍛`);
+  } 
+  else if (text === 'menu') {
+    msg.reply(`🍛 *Dhaba Special Menu*\n\n1. Butter Chicken + 2 Roti - ₹180\n2. Dal Makhani + Rice - ₹150\n3. Paneer Butter Masala - ₹200\n4. Special Veg Thali - ₹220\n5. Chicken Biryani - ₹250\n\nReply with *order 1*`);
+  } 
+  else if (text.startsWith('order')) {
+    const item = text.replace('order', '').trim();
+    await db.collection('orders').add({
+      phone: msg.from,
+      item: item,
+      status: 'Received',
+      time: new Date().toISOString()
+    });
+    msg.reply(`✅ Order Received!\nItem ${item} is being prepared.\nThank you for ordering from Dhaba! 🙏`);
+  } 
+  else {
+    msg.reply('Type *menu* or *hi*');
+  }
 });
 
 client.initialize();
 
-console.log('🚀 Starting Dhaba Bot on GitHub Actions...');
+console.log('🚀 Dhaba Bot is starting on Render...');
