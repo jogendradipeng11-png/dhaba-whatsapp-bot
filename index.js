@@ -3,7 +3,7 @@ const qrcode = require('qrcode-terminal');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Firebase setup (keep as before)
+// Firebase (keep as you have)
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -11,7 +11,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const client = new Client({
-  authStrategy: new LocalAuth(),
+  authStrategy: new LocalAuth({ clientId: "dhaba-bot" }),   // Helps with session
   puppeteer: {
     headless: true,
     args: [
@@ -21,46 +21,43 @@ const client = new Client({
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',     // Important for GitHub Actions
-      '--disable-gpu'
-    ]
+      '--single-process',
+      '--disable-gpu',
+      '--disable-extensions'
+    ],
+    executablePath: '/usr/bin/google-chrome-stable'   // GitHub runner has Chrome
+  },
+  // Fix for recent WhatsApp Web changes
+  webVersionCache: {
+    type: 'remote',
+    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.0.html'   // Update if needed
   }
 });
 
-client.on('qr', qr => {
-  console.log('📱 Scan this QR code with WhatsApp:');
-  qrcode.generate(qr, { small: true });
+client.on('qr', (qr) => {
+  console.log('\n🔥 SCAN THIS QR CODE WITH YOUR WHATSAPP APP:\n');
+  qrcode.generate(qr, { 
+    small: false,     // Bigger QR = easier to scan
+    scale: 8 
+  });
+  console.log('\nIf the QR is still hard to scan, copy the text below and use an online QR generator:\n');
+  console.log(qr);   // This prints the raw QR string
 });
 
 client.on('ready', () => {
-  console.log('✅ Dhaba WhatsApp Bot is Online and Ready!');
+  console.log('✅ Dhaba WhatsApp Bot is successfully connected and online!');
 });
 
-client.on('message', async (msg) => {
-  // Your existing message handler code here (hi, menu, order etc.)
-  const text = msg.body.toLowerCase().trim();
+client.on('authenticated', () => {
+  console.log('🔐 Session authenticated successfully!');
+});
 
-  if (text === 'hi' || text === 'hello' || text === 'namaste') {
-    await msg.reply(`👋 *Welcome to Dhaba Bot!*\n\nType *menu* to see today's menu 🍛`);
-  } 
-  else if (text === 'menu') {
-    await msg.reply(`🍛 *Dhaba Special Menu Today*\n\n1. Butter Chicken + 2 Roti - ₹180\n2. Dal Makhani + Rice - ₹150\n3. Paneer Butter Masala - ₹200\n4. Special Veg Thali - ₹220\n5. Chicken Biryani - ₹250\n\nReply: *order 1*`);
-  } 
-  else if (text.startsWith('order')) {
-    const item = text.replace('order', '').trim();
-    await db.collection('orders').add({
-      phone: msg.from,
-      item: item,
-      status: 'Received',
-      time: new Date().toISOString()
-    });
-    await msg.reply(`✅ Order Received! Item ${item} is being prepared. Thank you! 🙏`);
-  } 
-  else {
-    await msg.reply('Type *menu* or *hi* to start.');
-  }
+// Your message handler (keep your existing hi/menu/order logic here)
+client.on('message', async (msg) => {
+  const text = msg.body.toLowerCase().trim();
+  // ... your existing code for hi, menu, order ...
 });
 
 client.initialize();
 
-console.log('🚀 Bot is starting...');
+console.log('🚀 Starting Dhaba Bot on GitHub Actions...');
