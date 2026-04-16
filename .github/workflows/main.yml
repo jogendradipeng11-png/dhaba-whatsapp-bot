@@ -14,13 +14,13 @@ jobs:
           DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           if [ -z "$DEPLOY_HOOK" ]; then
-            echo "❌ RENDER_DEPLOY_HOOK_URL secret is missing!"
+            echo "❌ Error: RENDER_DEPLOY_HOOK_URL secret is not set in GitHub!"
             exit 1
           fi
-          echo "🚀 Triggering deployment on Render..."
+          echo "🚀 Triggering deploy on Render..."
           curl -X POST "$DEPLOY_HOOK" \
             -H "Content-Type: application/json" \
             -d '{"status": "triggered"}'
       
-      - name: Deployment Triggered
-        run: echo "✅ Render deployment triggered. Check your Render dashboard logs for QR code and bot status."
+      - name: Done
+        run: echo "✅ Render deployment triggered successfully! Check Render Logs for QR code."
