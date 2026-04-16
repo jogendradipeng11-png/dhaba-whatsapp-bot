@@ -10,15 +10,25 @@ const logger = pino({ level: 'silent' });
 const app = express();
 app.get('/health', (req, res) => res.send('✅ Dhaba WhatsApp Bot is Alive!'));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🌐 Health check running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🌐 Health server running on port ${PORT}`));
 
 async function connectDB() {
-  return await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME
-  });
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (databaseUrl) {
+    console.log('✅ Connecting to database using DATABASE_URL');
+    // Supports full URL like: mysql://user:pass@host/dbname
+    return await mysql.createConnection(databaseUrl);
+  } else {
+    // Fallback if you still use individual secrets
+    console.log('✅ Connecting using separate DB variables');
+    return await mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME
+    });
+  }
 }
 
 async function initDB(db) {
@@ -48,7 +58,7 @@ async function initDB(db) {
       ('Gulab Jamun', 60.00),
       ('Roti', 20.00),
       ('Lassi', 50.00)`);
-    console.log('✅ Default Dhaba menu inserted!');
+    console.log('✅ Default Dhaba menu inserted successfully!');
   }
 }
 
@@ -65,7 +75,7 @@ async function startBot() {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
-      console.log('\n🔥 SCAN THIS QR CODE WITH YOUR WHATSAPP APP:\n');
+      console.log('\n🔥 SCAN THIS QR CODE WITH WHATSAPP:\n');
       qrcode.generate(qr, { small: true });
     }
 
@@ -73,7 +83,7 @@ async function startBot() {
       const shouldReconnect = (lastDisconnect?.error?.output?.statusCode) !== DisconnectReason.loggedOut;
       if (shouldReconnect) {
         console.log('🔄 Reconnecting WhatsApp Bot...');
-        startBot();
+        setTimeout(startBot, 5000); // small delay before reconnect
       } else {
         console.log('❌ Logged out. Delete "auth_info" folder and restart.');
       }
@@ -101,7 +111,7 @@ async function startBot() {
       rows.forEach(row => {
         reply += `• ${row.item} → ₹${row.price}\n`;
       });
-      reply += '\nReply with: *order Butter Chicken 2*';
+      reply += '\nSend: *order Butter Chicken 2*';
       await sock.sendMessage(from, { text: reply });
     } 
     else if (text.startsWith('order')) {
@@ -120,15 +130,15 @@ async function startBot() {
           [from, item, qty]);
 
         await sock.sendMessage(from, { 
-          text: `✅ *Order Received!*\n\n${qty} × ${item}\nStatus: *Pending*\n\nThank you for ordering at Dhaba!` 
+          text: `✅ *Order Placed Successfully!*\n\n${qty} × ${item}\nStatus: *Pending*\n\nThank you for ordering from Dhaba!` 
         });
       } else {
-        await sock.sendMessage(from, { text: '❌ Sorry, item not found.\nSend *menu* to see available items.' });
+        await sock.sendMessage(from, { text: '❌ Item not found.\nSend *menu* to see available items.' });
       }
     } 
     else {
       await sock.sendMessage(from, { 
-        text: '👋 Hello! Welcome to Dhaba\n\nSend *menu* to see menu\nor type *order <item> <quantity>*\nExample: order dal makhani 2' 
+        text: '👋 Hello! Welcome to Dhaba\n\nSend *menu* to see the menu\nor type:\n*order <item> <quantity>*\nExample: order dal makhani 2' 
       });
     }
 
@@ -141,10 +151,10 @@ async function main() {
     const db = await connectDB();
     await initDB(db);
     await db.end();
-    console.log('✅ Database connected and initialized');
+    console.log('✅ Database initialized successfully');
     startBot();
   } catch (err) {
-    console.error('❌ Error starting bot:', err);
+    console.error('❌ Failed to start bot:', err.message);
   }
 }
 
