@@ -3,53 +3,42 @@ const qrcode = require('qrcode-terminal');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// === Firebase Setup ===
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
+
 const db = admin.firestore();
 
 const client = new Client({
-  authStrategy: new LocalAuth({ clientId: "dhaba-bot" }),
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-gpu'
-    ]
-  }
+  authStrategy: new LocalAuth()
 });
 
-client.on('qr', (qr) => {
-  console.log('\n🔥 === SCAN THIS QR WITH YOUR WHATSAPP ===\n');
-  qrcode.generate(qr, { small: false });   // Big QR for easy scanning
-  console.log('\nIf QR is hard to scan, copy the string below and use online QR generator:\n');
-  console.log(qr);
+client.on('qr', qr => {
+  console.log('Scan this QR with WhatsApp:');
+  qrcode.generate(qr, { small: true });
 });
 
 client.on('ready', () => {
-  console.log('\n✅ Dhaba WhatsApp Bot is ONLINE and Ready!');
+  console.log('✅ Dhaba WhatsApp Bot is Online!');
 });
 
-client.on('authenticated', () => {
-  console.log('🔐 Session authenticated successfully!');
-});
-
-client.on('message', async (msg) => {
+client.on('message', async msg => {
   const text = msg.body.toLowerCase().trim();
 
   if (text === 'hi' || text === 'hello' || text === 'namaste') {
-    await msg.reply(`👋 *Welcome to Dhaba Bot!*\n\nType *menu* to see today's menu 🍛`);
+    msg.reply(`👋 *Welcome to Dhaba Bot!*\n\nType *menu* to see today's special menu 🍛`);
   } 
   else if (text === 'menu') {
-    await msg.reply(`🍛 *Dhaba Special Menu Today*\n\n1. Butter Chicken + 2 Roti - ₹180\n2. Dal Makhani + Rice - ₹150\n3. Paneer Butter Masala - ₹200\n4. Special Veg Thali - ₹220\n5. Chicken Biryani - ₹250\n\nReply with: *order 1*`);
+    msg.reply(`🍛 *Dhaba Special Menu Today*
+
+1. Butter Chicken + 2 Roti - ₹180
+2. Dal Makhani + Rice - ₹150
+3. Paneer Butter Masala - ₹200
+4. Special Veg Thali - ₹220
+5. Chicken Biryani - ₹250
+
+Reply with: *order 1*  (example)`);
   } 
   else if (text.startsWith('order')) {
     const item = text.replace('order', '').trim();
@@ -59,13 +48,11 @@ client.on('message', async (msg) => {
       status: 'Received',
       time: new Date().toISOString()
     });
-    await msg.reply(`✅ *Order Received!*\nItem ${item} is being prepared.\nThank you for ordering from Dhaba! 🙏`);
+    msg.reply(`✅ *Order Received!*\nYour order for item ${item} is being prepared.\n\nThank you for ordering from Dhaba! 🙏`);
   } 
   else {
-    await msg.reply('Sorry, I didn\'t understand.\nType *menu* or *hi* to start.');
+    msg.reply('Sorry, I did not understand.\nType *menu* to see menu or *hi* to start.');
   }
 });
 
 client.initialize();
-
-console.log('🚀 Dhaba Bot is starting...');
