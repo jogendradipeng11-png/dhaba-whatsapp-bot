@@ -1,18 +1,28 @@
-name: Deploy Dhaba Bot to Render
+name: Dhaba-WhatsApp-Bot
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  schedule:
+    - cron: '0 */5 * * *'   # Every 5 hours (keeps things awake)
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Deployment
-        run: |
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}" \
-          -H "Content-Type: application/json" \
-          -d '{"status": "triggered"}'
-      - name: Deployment Triggered
-        run: echo "✅ Deployment triggered on Render"
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Start Dhaba Bot
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm start
