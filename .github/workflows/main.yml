@@ -1,28 +1,26 @@
 name: Dhaba-WhatsApp-Bot
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "main" ]
-  schedule:
-    - cron: '0 */5 * * *'   # Every 5 hours (keeps things awake)
+  workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Start Dhaba Bot
+      - name: Trigger Render Deployment
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm start
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "❌ RENDER_DEPLOY_HOOK_URL secret is missing!"
+            exit 1
+          fi
+          echo "🚀 Triggering deployment on Render..."
+          curl -X POST "$DEPLOY_HOOK" \
+            -H "Content-Type: application/json" \
+            -d '{"status": "triggered"}'
+      
+      - name: Deployment Triggered
+        run: echo "✅ Render deployment triggered. Check your Render dashboard logs for QR code and bot status."
