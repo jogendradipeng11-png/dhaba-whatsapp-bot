@@ -1,0 +1,18 @@
+name: Deploy Dhaba Bot to Render
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deployment
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{"status": "triggered"}'
+      - name: Deployment Triggered
+        run: echo "✅ Deployment triggered on Render"
